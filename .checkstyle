@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<fileset-config file-format-version="1.2.0" simple-config="true" sync-formatter="false">
+  <local-check-config name="JOSM" location="tools/checkstyle/josm_checks.xml" type="project" description="">
+    <additional-data name="protect-config-file" value="false"/>
+  </local-check-config>
+  <fileset name="all" enabled="true" check-config-name="JOSM" local="true">
+    <file-match-pattern match-pattern="." include-pattern="true"/>
+  </fileset>
+  <filter name="DerivedFiles" enabled="true"/>
+  <filter name="FilesFromPackage" enabled="true">
+    <filter-data value="src/com"/>
+    <filter-data value="src/javax"/>
+    <filter-data value="src/oauth"/>
+    <filter-data value="src/org/apache"/>
+    <filter-data value="src/org/glassfish"/>
+    <filter-data value="src/org/jdesktop"/>
+    <filter-data value="src/org/openstreetmap/gui"/>
+    <filter-data value="src/org/openstreetmap/josm/gui/mappaint/mapcss/parsergen"/>
+    <filter-data value="src/org/tukaani"/>
+    <filter-data value=".externalToolBuilders"/>
+    <filter-data value=".settings"/>
+    <filter-data value=".svn"/>
+    <filter-data value="bin"/>
+    <filter-data value="bintest"/>
+    <filter-data value="build"/>
+    <filter-data value="build2"/>
+    <filter-data value="data"/>
+    <filter-data value="data_nodist"/>
+    <filter-data value="dist"/>
+    <filter-data value="eclipse"/>
+    <filter-data value="images"/>
+    <filter-data value="images_nodist"/>
+    <filter-data value="javadoc"/>
+    <filter-data value="linux"/>
+    <filter-data value="macosx"/>
+    <filter-data value="netbeans"/>
+    <filter-data value="patches"/>
+    <filter-data value="resources"/>
+    <filter-data value="styles"/>
+    <filter-data value="styles_nodist"/>
+    <filter-data value="test/build"/>
+    <filter-data value="test/config"/>
+    <filter-data value="test/data"/>
+    <filter-data value="test/lib"/>
+    <filter-data value="test/report"/>
+    <filter-data value="tools"/>
+    <filter-data value="windows"/>
+  </filter>
+</fileset-config>

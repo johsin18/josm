@@ -1,0 +1,274 @@
+// License: GPL. For details, see LICENSE file.
+package org.openstreetmap.josm.data.validation.tests;
+
+import static java.util.regex.Pattern.CASE_INSENSITIVE;
+import static java.util.regex.Pattern.UNICODE_CASE;
+import static org.openstreetmap.josm.tools.I18n.tr;
+
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.openstreetmap.josm.data.osm.OsmPrimitive;
+import org.openstreetmap.josm.data.osm.Way;
+import org.openstreetmap.josm.data.validation.Severity;
+import org.openstreetmap.josm.data.validation.Test;
+import org.openstreetmap.josm.data.validation.TestError;
+import org.openstreetmap.josm.data.validation.util.ValUtil;
+import org.openstreetmap.josm.gui.progress.ProgressMonitor;
+import org.openstreetmap.josm.tools.MultiMap;
+import org.openstreetmap.josm.tools.Utils;
+
+/**
+ * Checks for similar named ways, symptom of a possible typo. It uses the
+ * Levenshtein distance to check for similarity
+ *
+ * @author frsantos
+ */
+public class SimilarNamedWays extends Test {
+
+    protected static final int SIMILAR_NAMED = 701;
+
+    /** All ways, grouped by cells */
+    private Map<Point2D, List<Way>> cellWays;
+    /** The already detected errors */
+    private MultiMap<Way, Way> errorWays;
+
+    private final List<NormalizeRule> rules = new ArrayList<>();
+
+    /**
+     * Constructor
+     */
+    public SimilarNamedWays() {
+        super(tr("Similarly named ways"),
+                tr("This test checks for ways with similar names that may have been misspelled."));
+
+        // FIXME: hardcode these rules for now. Replace them with preferences later
+        // See https://josm.openstreetmap.de/ticket/3733#comment:19
+        addRegExprRule("\\pN+", "0"); // Unicode numbers: matches "Highway 66" but also persian numbers
+        addRegExprRule("M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$", "0"); // Roman numbers: matches "Building II"
+        addRegExprRule("\\d+(st|nd|rd|th)", "0st"); // 3rd Ave
+        addRegExprRule("^[A-Z] ", "X"); // E Street
+        addSynonyms("east", "west", "north", "south");
+        addSynonyms("first", "second", "third");
+    }
+
+    @Override
+    public void startTest(ProgressMonitor monitor) {
+        super.startTest(monitor);
+        cellWays = new HashMap<>(1000);
+        errorWays = new MultiMap<>();
+    }
+
+    @Override
+    public void endTest() {
+        cellWays = null;
+        errorWays = null;
+        super.endTest();
+    }
+
+    @Override
+    public void visit(Way w) {
+        if (!w.isUsable())
+            return;
+
+        String name = w.get("name");
+        if (name == null || name.length() < 6)
+            return;
+
+        List<List<Way>> theCellWays = ValUtil.getWaysInCell(w, cellWays);
+        for (List<Way> ways : theCellWays) {
+            for (Way w2 : ways) {
+                if (errorWays.contains(w, w2) || errorWays.contains(w2, w)) {
+                    continue;
+                }
+
+                String name2 = w2.get("name");
+                if (name2 == null || name2.length() < 6) {
+                    continue;
+                }
+
+                if (similaryName(name, name2)) {
+                    List<OsmPrimitive> primitives = new ArrayList<>(2);
+                    primitives.add(w);
+                    primitives.add(w2);
+                    errors.add(TestError.builder(this, Severity.WARNING, SIMILAR_NAMED)
+                            .message(tr("Similarly named ways"))
+                            .primitives(primitives)
+                            .build());
+                    errorWays.put(w, w2);
+                }
+            }
+            ways.add(w);
+        }
+    }
+
+    /**
+     * Add a regular expression rule.
+     * @param regExpr the regular expression to search for
+     * @param replacement a string to replace with, which should match the expression.
+     */
+    public void addRegExprRule(String regExpr, String replacement) {
+        rules.add(new RegExprRule(regExpr, replacement));
+    }
+
+    /**
+     * Add a rule with synonym words.
+     * @param words words which are synonyms
+     */
+    public void addSynonyms(String... words) {
+        for (String word : words) {
+            rules.add(new SynonymRule(word, words));
+        }
+    }
+
+    /**
+     * Check if two names are similar, but not identical. First both names will be "normalized".
+     * Afterwards the Levenshtein distance will be calculated.<br>
+     * Examples for normalization rules:<br>
+     * <code>replaceAll("\\d+", "0")</code><br>
+     * would cause similaryName("track 1", "track 2") = false, but similaryName("Track 1", "track 2") = true
+     * @param name first name to compare
+     * @param name2 second name to compare
+     * @return true if the normalized names are different but only a "little bit"
+     */
+    public boolean similaryName(String name, String name2) {
+        boolean similar = Utils.isSimilar(name, name2);
+
+        // try all rules
+        for (NormalizeRule rule : rules) {
+            int levenshteinDistance = Utils.getLevenshteinDistance(rule.normalize(name), rule.normalize(name2));
+            if (levenshteinDistance == 0)
+                // one rule results in identical names: identical
+                return false;
+            else if (levenshteinDistance <= 2) {
+                // 0 < distance <= 2
+                similar = true;
+            }
+        }
+        return similar;
+    }
+
+    /**
+     * A normalization that is applied to names before testing them
+     */
+    @FunctionalInterface
+    public interface NormalizeRule {
+
+        /**
+         * Normalize the string by replacing parts.
+         * @param name name to normalize
+         * @return normalized string
+         */
+        String normalize(String name);
+    }
+
+    /**
+     * A rule to replace by regular expression,
+     * so that all strings matching the regular expression are handled as if they were {@link RegExprRule#replacement}
+     */
+    public static class RegExprRule implements NormalizeRule {
+        private final Pattern regExpr;
+        private final String replacement;
+
+        /**
+         * Create a new rule to replace by regular expression
+         * @param expression The regular expression
+         * @param replacement The replacement
+         */
+        public RegExprRule(String expression, String replacement) {
+            this.regExpr = Pattern.compile(expression);
+            this.replacement = replacement;
+        }
+
+        @Override
+        public String normalize(String name) {
+            return regExpr.matcher(name).replaceAll(replacement);
+        }
+
+        @Override
+        public String toString() {
+            return "replaceAll(" + regExpr + ", " + replacement + ')';
+        }
+    }
+
+    /**
+     * A rule that registers synonyms to a given word
+     */
+    public static class SynonymRule implements NormalizeRule {
+
+        private final String[] words;
+        private final Pattern regExpr;
+        private final String replacement;
+
+        /**
+         * Create a new {@link SynonymRule}
+         * @param replacement The word to use instead
+         * @param words The synonyms for that word
+         */
+        public SynonymRule(String replacement, String... words) {
+            this.replacement = replacement.toLowerCase(Locale.ENGLISH);
+            this.words = words;
+
+            // build regular expression for other words (for fast match)
+            StringBuilder expression = new StringBuilder();
+            int maxLength = 0;
+            for (int i = 0; i < words.length; i++) {
+                if (words[i].length() > maxLength) {
+                    maxLength = words[i].length();
+                }
+                if (expression.length() > 0) {
+                    expression.append('|');
+                }
+                expression.append(Pattern.quote(words[i]));
+            }
+            this.regExpr = Pattern.compile(expression.toString(), CASE_INSENSITIVE + UNICODE_CASE);
+        }
+
+        @Override
+        public String normalize(String name) {
+            // find first match
+            Matcher matcher = regExpr.matcher(name);
+            if (!matcher.find())
+                return name;
+
+            int start = matcher.start();
+
+            // which word matches?
+            String part = "";
+            for (int i = 0; i < words.length; i++) {
+                String word = words[i];
+                if (start + word.length() <= name.length()) {
+                    part = name.substring(start, start + word.length());
+                }
+                if (word.equalsIgnoreCase(part)) {
+                    break;
+                }
+            }
+
+            // replace the word
+            char[] newName = matcher.replaceFirst(replacement).toCharArray();
+
+            // adjust case (replacement is not shorter than matching word!)
+            int minLength = Math.min(replacement.length(), part.length());
+            for (int i = 0; i < minLength; i++) {
+                if (Character.isUpperCase(part.charAt(i))) {
+                    newName[start + i] = Character.toUpperCase(newName[start + i]);
+                }
+            }
+
+            return new String(newName);
+        }
+
+        @Override
+        public String toString() {
+            return "synonyms(" + replacement + ", " + Arrays.toString(words) + ')';
+        }
+    }
+}

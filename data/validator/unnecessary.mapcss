@@ -1,0 +1,177 @@
+*[access][highway=proposed],
+*[motor_vehicle?][!vehicle][!access][bicycle_road!=yes][highway =~ /^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|unclassified|residential|service|living_street)$/],
+*[bridge=no],
+*[building=no],
+*[elevation="0"],
+*[layer="0"] {
+  /* see #9365 - Useless tag layer=0 */
+  throwWarning: tr("{0} is unnecessary", "{0.tag}");
+  group: tr("unnecessary tag");
+  fixRemove: "{0.key}";
+  assertMatch: "way layer=0";
+  assertMatch: "way bridge=no";
+  assertMatch: "way highway=proposed access=no";
+  assertMatch: "way highway=motorway motor_vehicle=yes";
+  assertNoMatch: "way highway=motorway access=no motor_vehicle=yes";
+}
+
+area:closed[amenity ][area?][!highway],
+area:closed[building][area?],
+area:closed[landuse ][area?][!highway],
+area:closed[leisure ][area?][!highway][leisure!=track][leisure!=slipway],
+area:closed[natural ][area?],
+area:closed[shop    ][area?] {
+  throwWarning: tr("{0} is unnecessary for {1}", "{2.key}", "{1.key}");
+  group: tr("unnecessary tag");
+  fixRemove: "{2.key}";
+}
+
+/* #14256, #15664 */
+area:closed[highway=rest_area][area?],
+area:closed[highway=services][area?],
+area:closed[aeroway=aerodrome][area?],
+area:closed[aeroway=helipad][area?] {
+  throwWarning: tr("{0} is unnecessary for {1}", "{2.key}", "{1.tag}");
+  group: tr("unnecessary tag");
+  fixRemove: "{2.key}";
+}
+
+/* #9257, #17482 */
+way[foot =~ /^(yes|designated)$/][highway =~ /^(footway|pedestrian)$/][!access],
+way[bicycle =~ /^(yes|designated)$/][highway=cycleway][!vehicle][!access][foot!=designated],
+*[gnis:Class="Populated Place"][place=city],
+*[gnis:Class="Populated Place"][place=town],
+*[gnis:Class="Populated Place"][place=village],
+*[gnis:Class="Populated Place"][place=hamlet],
+*[gnis:Class=Summit][natural=peak] {
+  throwWarning: tr("{0} is unnecessary for {1}", "{0.tag}", "{1.tag}");
+  group: tr("unnecessary tag");
+  fixRemove: "{0.key}";
+  assertMatch: "way highway=pedestrian foot=designated";
+  assertNoMatch: "way highway=pedestrian access=no foot=designated";
+  /* see #17555 assertNoMatch: "node gnis:Class="Populated Place" place=locality";*/
+}
+
+*[emergency=permissive] {
+  /* see #9458 - emergency=permissive makes no sense */
+  throwWarning: tr("{0} makes no sense", "{0.tag}");
+  fixAdd: "emergency=yes";
+  assertMatch: "way emergency=permissive";
+  assertNoMatch: "way emergency=designated";
+}
+
+/* see ticket #7639 -- Warn when a node has the same tags as its parent way. */
+way >:sameTags node:tagged {
+  throwWarning: tr("Nodes duplicating parent way tags");
+}
+
+/* #15477 */
+*[payment:cash][payment:coins][payment:notes] {
+  throwWarning: tr("{0} together with {1} and {2}. Remove {0}.", "{0.key}", "{1.key}", "{2.key}");
+  group: tr("unnecessary tag");
+  fixRemove: "payment:cash";
+}
+
+/* see #10346, #15667 */
+way[waterway][oneway?] {
+  throwWarning: tr("{0} is unnecessary for {1}", "{1.key}", "{0.key}");
+  group: tr("unnecessary tag");
+  fixRemove: "{1.key}";
+}
+way[waterway][oneway=-1] {
+  throwWarning: tr("{0} is unnecessary for {1}. The flow direction is defined by the way direction.", "{1.key}", "{0.key}");
+  group: tr("unnecessary tag");
+}
+
+/* #15774 */
+node[emergency=fire_hydrant][fire_hydrant:count=1] {
+  throwWarning: tr("{0} is unnecessary for {1}", "{1.tag}", "{0.tag}");
+  group: tr("unnecessary tag");
+  fixRemove: "{1.key}";
+}
+
+/* #17100, #17471, #17629, #17633 */
+*[name][name=~/^(?i)(parc|park)$/][leisure=park],
+*[name][name=~/^(?i)(pond)$/][water=pond],
+*[name][name=~/^(?i)(chapel|chapelle|kapelle)$/][building=chapel],
+*[name][name=~/^(?i)(church|église|biserica)$/][amenity=place_of_worship][religion=christian],
+*[name][name=~/^(?i)(mosque|cami|masjid|مسجد)$/][amenity=place_of_worship][religion=muslim],
+*[name][name=~/^(?i)(parking|parkplatz)$/][amenity=parking],
+*[name][name=~/^(?i)(post office)$/][amenity=post_office],
+*[name][name=~/^(?i)(restaurant)$/][amenity=restaurant],
+*[name][name=~/^(?i)(toilets?)$/][amenity=toilets],
+*[name][name=~/^(?i)(playground|spielplatz)$/][leisure=playground],
+*[name][name=~/^(?i)(shop|boutique)$/][shop][shop!=no],
+*[name][name=~/^(?i)(building|bangunan)$/][building][building!=no],
+*[name][name=~/^(?i)(house|casa|maison|rumah|vivienda)$/][building=house],
+*[name][name=~/^(?i)(kiosk)$/][shop=kiosk],
+*[name][name=~/^(?i)(path)$/][highway=path],
+*[name][name=~/^(?i)(jalan)$/][highway],
+*[name][name=~/^(?i)(silo)$/][man_made=silo],
+*[name][name=~/^(?i)(silo)$/][building=silo],
+*[name][name=~/^(?i)(cemetery|cementerio|cimetière|cmentarz|friedhof)$/][amenity=grave_yard],
+*[name][name=~/^(?i)(cemetery|cementerio|cimetière|cmentarz|friedhof)$/][landuse=cemetery],
+*[name][name=~/^(?i)(mairie|rathaus)$/][amenity=townhall],
+*[name][name=~/^(?i)(monument aux morts|war memorial)$/][historic=memorial][memorial=war_memorial],
+*[name][name=~/^(?i)(school|école|Школа)$/][building=school],
+*[name][name=~/^(?i)(school|école|Школа)$/][amenity=school],
+*[name][name=~/^(?i)(école élémentaire)$/][amenity=school]["school:FR"="élémentaire"],
+*[name][name=~/^(?i)(école maternelle)$/][amenity=school]["school:FR"="maternelle"],
+*[name][name=~/^(?i)(école primaire)$/][amenity=school]["school:FR"="primaire"],
+*[name][name=~/^(?i)(collège)$/][amenity=school]["school:FR"="collège"],
+*[name][name=~/^(?i)(lycée)$/][amenity=school]["school:FR"="lycée"],
+*[name][name=~/^(?i)(Аптека|farmacia|pharmacy|pharmacie)$/][amenity=pharmacy],
+*[name][name=~/^(?i)(hydrant)$/][emergency=fire_hydrant],
+*[name][name=~/^(?i)(АГЗС|АЗС)$/][amenity=fuel] {
+  throwWarning: tr("{0}", "{0.tag}");
+  group: tr("descriptive name");
+  fixRemove: "name";
+  assertMatch: "node name=parking amenity=parking";
+  assertMatch: "node name=Parking amenity=parking";
+  assertNoMatch: "node name=Parking_with_suffix amenity=parking";
+  assertNoMatch: "node name=Megaparking amenity=parking";
+  assertMatch: "relation name=parking amenity=parking type=multipolygon";
+  assertMatch: "relation name=Parking amenity=parking type=multipolygon";
+  assertNoMatch: "way name=parking";
+  assertMatch: "relation name=PLAYGROUND leisure=playground type=multipolygon";
+  assertMatch: "node name=PLaYGrOUNd leisure=playground";
+  assertMatch: "node name=shop shop=whatever";
+  assertNoMatch: "node name=shop shop=no";
+  assertNoMatch: "way name=shop leisure=playground";
+  assertMatch: "way name=building building=yes";
+  assertMatch: "way name=building building=house";
+  assertMatch: "way name=Rumah building=house";
+  assertNoMatch: "way name=Rumah building=yes";
+  assertMatch: "way name=house building=house";
+  assertNoMatch: "way name=house building=yes";
+  assertMatch: "way name=kiosk building=yes shop=kiosk";
+  assertNoMatch: "way name=kiosk building=yes";
+  assertMatch: "way name=silo man_made=silo";
+  assertMatch: "way name=Silo man_made=silo building=silo";
+  assertMatch: "way name=Silo building=silo";
+  assertMatch: "way name=cemetery amenity=grave_yard";
+  assertMatch: "way name=Cmentarz amenity=grave_yard";
+  assertNoMatch: "way name=kiosk amenity=grave_yard";
+}
+*[name][name=~/^(?i)(school|école|Школа)$/][building][building!=school][building!=no],
+*[name][name=~/^(?i)(house|casa|rumah|vivienda)$/][building][building!=house][building!=no] {
+  throwWarning: tr("{0}", "{0.tag}");
+  group: tr("descriptive name");
+  /* without fixRemove to avoid possible information loss */
+  assertNoMatch: "way name=building building=yes";
+  assertNoMatch: "way name=building building=house";
+  assertNoMatch: "way name=Rumah building=house";
+  assertMatch: "way name=Rumah building=yes";
+  assertNoMatch: "way name=house building=house";
+  assertMatch: "way name=house building=yes";
+}
+
+/* #2760 */
+*[/^(gpx|gpxx|gpxd):/] {
+  throwWarning: tr("{0} should not be uploaded", "{0.key}");
+  group: tr("unnecessary tag");
+  fixRemove: "{0.key}";
+  assertMatch: "node gpx:time=2018-01-01T12:00:00Z";
+  assertMatch: "node gpxd:color=#FF0000";
+  assertNoMatch: "node source=gpx:foo";
+}
