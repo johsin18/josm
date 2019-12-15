@@ -1326,8 +1326,8 @@ public class ImageProvider {
             Logging.debug("Cursors are not available in headless mode. Returning null for ''{0}''", name);
             return null;
         }
-        return Toolkit.getDefaultToolkit().createCustomCursor(img.getImage(),
-                "crosshair".equals(name) ? new Point(10, 10) : new Point(3, 2), name);
+        Point hotSpot = "crosshair".equals(name) ? new Point(10, 10) : new Point(3, 2);
+        return Toolkit.getDefaultToolkit().createCustomCursor(img.getImage(), hotSpot, name);
     }
 
     /** 90 degrees in radians units */
