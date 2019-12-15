@@ -1327,7 +1327,7 @@ public class ImageProvider {
             return null;
         }
         return Toolkit.getDefaultToolkit().createCustomCursor(img.getImage(),
-                "crosshair".equals(name) ? new Point(10, 10) : new Point(3, 2), "Cursor");
+                "crosshair".equals(name) ? new Point(10, 10) : new Point(3, 2), name);
     }
 
     /** 90 degrees in radians units */
