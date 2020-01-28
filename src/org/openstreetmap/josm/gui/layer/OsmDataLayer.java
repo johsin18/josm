@@ -133,6 +133,7 @@ import org.openstreetmap.josm.tools.ImageOverlay;
 import org.openstreetmap.josm.tools.ImageProvider;
 import org.openstreetmap.josm.tools.ImageProvider.ImageSizes;
 import org.openstreetmap.josm.tools.Logging;
+import org.openstreetmap.josm.tools.Stopwatch;
 import org.openstreetmap.josm.tools.UncheckedParseException;
 import org.openstreetmap.josm.tools.date.DateUtils;
 
@@ -516,6 +517,7 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
     }
 
     void hatchNonDownloadedArea(Graphics2D g, NavigatableComponent nc) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         Path2D downloadedArea = new Path2D.Double();
 
         // combine successively downloaded areas
@@ -546,6 +548,7 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
             // #16686 - AIOOBE in java.awt.TexturePaintContext$Int.setRaster
             Logging.error(e);
         }
+        System.out.format("hatchfill % 3d\n", stopwatch.elapsed());
     }
 
     @Override public String getToolTipText() {
