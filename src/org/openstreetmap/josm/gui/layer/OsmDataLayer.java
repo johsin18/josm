@@ -503,32 +503,34 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
         // and bounds are defined; don't draw for inactive layers or loaded GPX files etc
         if (active && DrawingPreference.SOURCE_BOUNDS_PROP.get() && !data.getDataSources().isEmpty()) {
             // initialize area with current viewport
-            Rectangle b = mv.getBounds();
+            Rectangle viewPortArea = mv.getBounds();
             // on some platforms viewport bounds seem to be offset from the left,
             // over-grow it just to be sure
-            b.grow(100, 100);
-            Path2D p = new Path2D.Double();
+            viewPortArea.grow(100, 100);
+            Path2D downloadedArea = new Path2D.Double();
 
             // combine successively downloaded areas
             for (Bounds bounds : data.getDataSourceBounds()) {
                 if (bounds.isCollapsed()) {
                     continue;
                 }
-                p.append(mv.getState().getArea(bounds), false);
+                downloadedArea.append(mv.getState().getArea(bounds), false);
             }
             // subtract combined areas
-            Area a = new Area(b);
-            a.subtract(new Area(p));
+            Area nonDownloadedArea = new Area(viewPortArea);
+            nonDownloadedArea.subtract(new Area(downloadedArea));
 
-            // paint remainder
+            // anchor pattern to a fixed point of the map, so that it scrolls with the rest of the map
             MapViewPoint anchor = mv.getState().getPointFor(new EastNorth(0, 0));
             Rectangle2D anchorRect = new Rectangle2D.Double(anchor.getInView().getX() % HATCHED_SIZE,
                     anchor.getInView().getY() % HATCHED_SIZE, HATCHED_SIZE, HATCHED_SIZE);
+
+            // hatch remaining (e.g. non-downloaded) area
             if (hatched != null) {
                 g.setPaint(new TexturePaint(hatched, anchorRect));
             }
             try {
-                g.fill(a);
+                g.fill(nonDownloadedArea);
             } catch (ArrayIndexOutOfBoundsException e) {
                 // #16686 - AIOOBE in java.awt.TexturePaintContext$Int.setRaster
                 Logging.error(e);
