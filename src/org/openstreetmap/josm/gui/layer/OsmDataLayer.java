@@ -496,52 +496,56 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
      */
     @Override public void paint(final Graphics2D g, final MapView mv, Bounds box) {
         boolean active = mv.getLayerManager().getActiveLayer() == this;
-        boolean inactive = !active && Config.getPref().getBoolean("draw.data.inactive_color", true);
-        boolean virtual = !inactive && mv.isVirtualNodesEnabled();
 
         // draw the hatched area for non-downloaded region. only draw if we're the active
         // and bounds are defined; don't draw for inactive layers or loaded GPX files etc
         if (active && DrawingPreference.SOURCE_BOUNDS_PROP.get() && !data.getDataSources().isEmpty()) {
-            // initialize area with current viewport
-            Rectangle viewPortArea = mv.getBounds();
-            // on some platforms viewport bounds seem to be offset from the left,
-            // over-grow it just to be sure
-            viewPortArea.grow(100, 100);
-            Path2D downloadedArea = new Path2D.Double();
-
-            // combine successively downloaded areas
-            for (Bounds bounds : data.getDataSourceBounds()) {
-                if (bounds.isCollapsed()) {
-                    continue;
-                }
-                downloadedArea.append(mv.getState().getArea(bounds), false);
-            }
-            // subtract combined areas
-            Area nonDownloadedArea = new Area(viewPortArea);
-            nonDownloadedArea.subtract(new Area(downloadedArea));
-
-            // anchor pattern to a fixed point of the map, so that it scrolls with the rest of the map
-            MapViewPoint anchor = mv.getState().getPointFor(new EastNorth(0, 0));
-            Rectangle2D anchorRect = new Rectangle2D.Double(anchor.getInView().getX() % HATCHED_SIZE,
-                    anchor.getInView().getY() % HATCHED_SIZE, HATCHED_SIZE, HATCHED_SIZE);
-
-            // hatch remaining (e.g. non-downloaded) area
-            if (hatched != null) {
-                g.setPaint(new TexturePaint(hatched, anchorRect));
-            }
-            try {
-                g.fill(nonDownloadedArea);
-            } catch (ArrayIndexOutOfBoundsException e) {
-                // #16686 - AIOOBE in java.awt.TexturePaintContext$Int.setRaster
-                Logging.error(e);
-            }
+            hatchNonDownloadedArea(g, mv);
         }
 
+        boolean inactive = !active && Config.getPref().getBoolean("draw.data.inactive_color", true);
+        boolean virtual = !inactive && mv.isVirtualNodesEnabled();
         AbstractMapRenderer painter = MapRendererFactory.getInstance().createActiveRenderer(g, mv, inactive);
         painter.enableSlowOperations(mv.getMapMover() == null || !mv.getMapMover().movementInProgress()
                 || !PROPERTY_HIDE_LABELS_WHILE_DRAGGING.get());
         painter.render(data, virtual, box);
         MainApplication.getMap().conflictDialog.paintConflicts(g, mv);
+    }
+
+    private void hatchNonDownloadedArea(Graphics2D g, MapView mv) {
+        // initialize area with current viewport
+        Rectangle viewPortArea = mv.getBounds();
+        // on some platforms viewport bounds seem to be offset from the left,
+        // over-grow it just to be sure
+        viewPortArea.grow(100, 100);
+        Path2D downloadedArea = new Path2D.Double();
+
+        // combine successively downloaded areas
+        for (Bounds bounds : data.getDataSourceBounds()) {
+            if (bounds.isCollapsed()) {
+                continue;
+            }
+            downloadedArea.append(mv.getState().getArea(bounds), false);
+        }
+        // subtract combined areas
+        Area nonDownloadedArea = new Area(viewPortArea);
+        nonDownloadedArea.subtract(new Area(downloadedArea));
+
+        // anchor pattern to a fixed point of the map, so that it scrolls with the rest of the map
+        MapViewPoint anchor = mv.getState().getPointFor(new EastNorth(0, 0));
+        Rectangle2D anchorRect = new Rectangle2D.Double(anchor.getInView().getX() % HATCHED_SIZE,
+                anchor.getInView().getY() % HATCHED_SIZE, HATCHED_SIZE, HATCHED_SIZE);
+
+        // hatch remaining (e.g. non-downloaded) area
+        if (hatched != null) {
+            g.setPaint(new TexturePaint(hatched, anchorRect));
+        }
+        try {
+            g.fill(nonDownloadedArea);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            // #16686 - AIOOBE in java.awt.TexturePaintContext$Int.setRaster
+            Logging.error(e);
+        }
     }
 
     @Override public String getToolTipText() {
