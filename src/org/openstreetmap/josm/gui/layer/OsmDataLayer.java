@@ -513,11 +513,6 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
     }
 
     private void hatchNonDownloadedArea(Graphics2D g, MapView mv) {
-        // initialize area with current viewport
-        Rectangle viewPortArea = mv.getBounds();
-        // on some platforms viewport bounds seem to be offset from the left,
-        // over-grow it just to be sure
-        viewPortArea.grow(100, 100);
         Path2D downloadedArea = new Path2D.Double();
 
         // combine successively downloaded areas
@@ -527,8 +522,10 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
             }
             downloadedArea.append(mv.getState().getArea(bounds), false);
         }
+        // current viewport is base
+        Area nonDownloadedArea = new Area(
+                new Rectangle(mv.getWidth(), mv.getHeight()) /* ignore position, as may be shifted by AlignImageryPanel */);
         // subtract combined areas
-        Area nonDownloadedArea = new Area(viewPortArea);
         nonDownloadedArea.subtract(new Area(downloadedArea));
 
         // anchor pattern to a fixed point of the map, so that it scrolls with the rest of the map
