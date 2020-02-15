@@ -153,11 +153,22 @@ public class ImageResource {
      * @return ImageIcon object for the image of this resource, scaled according to dim
      * @since 12722
      */
-    public ImageIcon getImageIcon(Dimension dim, boolean multiResolution) {
-        return getImageIconAlreadyScaled(GuiSizesHelper.getDimensionDpiAdjusted(dim), multiResolution);
+    ImageIcon getImageIcon(Dimension dim, boolean multiResolution) {
+        return getImageIconAlreadyScaled(GuiSizesHelper.getDimensionDpiAdjusted(dim), multiResolution, false);
     }
 
-    public ImageIcon getImageIconAlreadyScaled(Dimension dim, boolean multiResolution) {
+    /**
+     * Get an ImageIcon object for the image of this resource. A potential UI scaling is assumed
+     * to be already taken care of, so dim is already scaled accordingly.
+     * @param  dim The requested dimensions. Use (-1,-1) for the original size and (width, -1)
+     *         to set the width, but otherwise scale the image proportionally.
+     * @param  multiResolution If true, return a multi-resolution image
+     * (java.awt.image.MultiResolutionImage in Java 9), otherwise a plain {@link BufferedImage}.
+     * When running Java 8, this flag has no effect and a plain image will be returned in any case.
+     * @param highResolution whether the high resolution variant should be used for overlays
+     * @return ImageIcon object for the image of this resource, scaled according to dim
+     */
+    ImageIcon getImageIconAlreadyScaled(Dimension dim, boolean multiResolution, boolean highResolution) {
         CheckParameterUtil.ensureThat((dim.width > 0 || dim.width == -1) && (dim.height > 0 || dim.height == -1),
                 () -> dim + " is invalid");
 
@@ -186,7 +197,7 @@ public class ImageResource {
             }
             if (overlayInfo != null) {
                 for (ImageOverlay o : overlayInfo) {
-                    o.process(img);
+                    o.process(img, highResolution);
                 }
             }
             if (isDisabled) {
