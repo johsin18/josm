@@ -2,6 +2,7 @@
 package org.openstreetmap.josm.tools;
 
 import java.awt.Dimension;
+import java.awt.Image;
 import java.awt.image.BufferedImage;
 
 import javax.swing.ImageIcon;
@@ -9,7 +10,7 @@ import javax.swing.ImageIcon;
 /** class to describe how image overlay
  * @since 8095
  */
-public class ImageOverlay implements ImageProcessor {
+public class ImageOverlay {
     /** the image resource to use as overlay */
     public ImageProvider image;
     /** offset of the image from left border, values between 0 and 1 */
@@ -61,11 +62,11 @@ public class ImageOverlay implements ImageProcessor {
      * Handle overlay. The image passed as argument is modified!
      *
      * @param ground the base image for the overlay (gets modified!)
+     * @param highResolution whether the high resolution variant should be used to overlay
      * @return the modified image (same as argument)
      * @since 8095
      */
-    @Override
-    public BufferedImage process(BufferedImage ground) {
+    public BufferedImage process(BufferedImage ground, boolean highResolution) {
         /* get base dimensions for calculation */
         int w = ground.getWidth();
         int h = ground.getHeight();
@@ -77,9 +78,12 @@ public class ImageOverlay implements ImageProcessor {
         if (offsetTop > 0 && offsetBottom > 0) {
             height = (int) (h*(offsetBottom-offsetTop));
         }
-        ImageIcon overlay;
         image = new ImageProvider(image).setMaxSize(new Dimension(width, height));
-        overlay = image.get();
+        ImageIcon overlay = image.get();
+        if (highResolution) {
+            Image overlayImage = HiDPISupport.getResolutionVariants(overlay.getImage()).get(1);
+            overlay = new ImageIcon(overlayImage);
+        }
         int x, y;
         if (width == -1 && offsetLeft < 0) {
             x = (int) (w*offsetRight) - overlay.getIconWidth();

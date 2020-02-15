@@ -60,7 +60,7 @@ public final class HiDPISupport {
         if (uiScale != 1.0 && baseMultiResolutionImageConstructor != null) {
             ImageIcon zoomed = ir.getImageIconAlreadyScaled(new Dimension(
                     (int) Math.round(base.getWidth(null) * uiScale),
-                    (int) Math.round(base.getHeight(null) * uiScale)), false);
+                    (int) Math.round(base.getHeight(null) * uiScale)), false, true);
             Image mrImg = getMultiResolutionImage(Arrays.asList(base, zoomed.getImage()));
             if (mrImg != null) return mrImg;
         }
