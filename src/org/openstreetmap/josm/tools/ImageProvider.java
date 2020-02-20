@@ -1316,6 +1316,11 @@ public class ImageProvider {
      * @return cursor with a given file name, optionally decorated with an overlay image
      */
     public static Cursor getCursor(String name, String overlay) {
+        if (GraphicsEnvironment.isHeadless()) {
+            Logging.debug("Cursors are not available in headless mode. Returning null for ''{0}''", name);
+            return null;
+        }
+
         ImageProvider imageProvider = new ImageProvider("cursor", name);
         if (overlay != null) {
             imageProvider
@@ -1323,12 +1328,8 @@ public class ImageProvider {
                 .addOverlay(new ImageOverlay(new ImageProvider("cursor/modifier/" + overlay)
                                                 .setMaxSize(ImageSizes.CURSOROVERLAY)));
         }
-        ImageIcon imageIcon = imageProvider.get();
-        if (GraphicsEnvironment.isHeadless()) {
-            Logging.debug("Cursors are not available in headless mode. Returning null for ''{0}''", name);
-            return null;
-        }
         Point hotSpot = "crosshair".equals(name) ? new Point(10, 10) : new Point(3, 2);
+        ImageIcon imageIcon = imageProvider.get();
         Image image = imageIcon.getImage();
         int width = image.getWidth(null);
         int height = image.getHeight(null);
