@@ -1317,12 +1317,14 @@ public class ImageProvider {
      * @return cursor with a given file name, optionally decorated with an overlay image
      */
     public static Cursor getCursor(String name, String overlay) {
-        ImageIcon imageIcon = get("cursor", name);
+        ImageProvider imageProvider = new ImageProvider("cursor", name);
         if (overlay != null) {
-            imageIcon = new ImageProvider("cursor", name).setMaxSize(ImageSizes.CURSOR)
+            imageProvider
+                .setMaxSize(ImageSizes.CURSOR)
                 .addOverlay(new ImageOverlay(new ImageProvider("cursor/modifier/" + overlay)
-                    .setMaxSize(ImageSizes.CURSOROVERLAY))).get();
+                                                .setMaxSize(ImageSizes.CURSOROVERLAY)));
         }
+        ImageIcon imageIcon = imageProvider.get();
         if (GraphicsEnvironment.isHeadless()) {
             Logging.debug("Cursors are not available in headless mode. Returning null for ''{0}''", name);
             return null;
