@@ -1321,6 +1321,21 @@ public class ImageProvider {
             return null;
         }
 
+        Point hotSpot = new Point();
+        Image image = getCursorImage(name, overlay, hotSpot);
+
+        return Toolkit.getDefaultToolkit().createCustomCursor(image, hotSpot, name);
+    }
+
+    /**
+     * Load a cursor image with a given file name, optionally decorated with an overlay image
+     *
+     * @param name the cursor image filename in "cursor" directory
+     * @param overlay optional overlay image
+     * @param hotSpot will be set to the properly scaled hotspot of the cursor
+     * @return cursor with a given file name, optionally decorated with an overlay image
+     */
+    static Image getCursorImage(String name, String overlay, /* out */ Point hotSpot) {
         ImageProvider imageProvider = new ImageProvider("cursor", name);
         if (overlay != null) {
             imageProvider
@@ -1328,7 +1343,7 @@ public class ImageProvider {
                 .addOverlay(new ImageOverlay(new ImageProvider("cursor/modifier/" + overlay)
                                                 .setMaxSize(ImageSizes.CURSOROVERLAY)));
         }
-        Point hotSpot = "crosshair".equals(name) ? new Point(10, 10) : new Point(3, 2);
+        hotSpot.setLocation("crosshair".equals(name) ? new Point(10, 10) : new Point(3, 2));
         ImageIcon imageIcon = imageProvider.get();
         Image image = imageIcon.getImage();
         int width = image.getWidth(null);
@@ -1349,7 +1364,7 @@ public class ImageProvider {
             hotSpot.y = hotSpot.y * bestCursorSize.height / height;
         }
 
-        return Toolkit.getDefaultToolkit().createCustomCursor(image, hotSpot, name);
+        return image;
     }
 
     /** 90 degrees in radians units */
