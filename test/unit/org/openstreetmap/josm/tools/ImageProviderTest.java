@@ -8,9 +8,12 @@ import static org.junit.Assert.assertNull;
 
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.GraphicsEnvironment;
 import java.awt.GridLayout;
 import java.awt.Graphics;
 import java.awt.Image;
+import java.awt.Point;
+import java.awt.Toolkit;
 import java.awt.Transparency;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -27,6 +30,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
+import mockit.integration.TestRunnerDecorator;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -37,6 +41,7 @@ import org.openstreetmap.josm.TestUtils;
 import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmUtils;
 import org.openstreetmap.josm.testutils.JOSMTestRules;
+import org.openstreetmap.josm.testutils.mockers.HeadlessToolkitMocker;
 import org.openstreetmap.josm.tools.ImageProvider.GetPaddedOptions;
 
 import com.kitfox.svg.SVGConst;
@@ -186,6 +191,69 @@ public class ImageProviderTest {
             assertEquals((int) Math.round(expectedVirtualWidth * scale * HiDPISupport.getHiDPIScale()),
                          resolutionVariants.get(1).getWidth(null));
         }
+    }
+
+    public static final int ORIGINAL_CURSOR_SIZE = 32;
+
+    /**
+     * Test getting an image for a crosshair cursor.
+     */
+    @Test
+    public void testGetCursorImageForCrosshair() {
+        Dimension[] bestCursorSizes = installHeadlessToolkitMock();
+
+        for (Dimension cursorSize: bestCursorSizes) {
+            if (GraphicsEnvironment.isHeadless()) {
+                HeadlessToolkitMocker.bestCursorSize = cursorSize;
+            }
+            Point hotSpot = new Point();
+            Image image = ImageProvider.getCursorImage("crosshair", null, hotSpot);
+            assertCursorDimensionsCorrect(new Point.Double(10.0, 10.0), image, hotSpot);
+        }
+
+        TestRunnerDecorator.cleanUpAllMocks();
+    }
+
+    /**
+     * Test getting an image for a custom cursor with overlay.
+     */
+    @Test
+    public void testGetCursorImageWithOverlay() {
+        Dimension[] bestCursorSizes = installHeadlessToolkitMock();
+
+        for (Dimension cursorSize: bestCursorSizes) {
+            if (GraphicsEnvironment.isHeadless()) {
+                HeadlessToolkitMocker.bestCursorSize = cursorSize;
+            }
+            Point hotSpot = new Point();
+            Image image = ImageProvider.getCursorImage("normal", "selection", hotSpot);
+            assertCursorDimensionsCorrect(new Point.Double(3.0, 2.0), image, hotSpot);
+        }
+        TestRunnerDecorator.cleanUpAllMocks();
+    }
+
+    private Dimension[] installHeadlessToolkitMock() {
+        if (GraphicsEnvironment.isHeadless()) {
+            TestUtils.assumeWorkingJMockit();
+            new HeadlessToolkitMocker();
+            // in headless mode, let's test many reasonable values
+            return new Dimension[]{new Dimension(32, 32), new Dimension(48, 48),
+                                   new Dimension(64, 64), new Dimension(96, 96)};
+        } else {
+            // in normal mode, test the settings of the system run on
+            return new Dimension[]{new Dimension(-1, -1)}; // values disregarded, but trigger a single test run
+        }
+    }
+
+    private void assertCursorDimensionsCorrect(Point.Double originalHotspot, Image image, Point hotSpot) {
+        Dimension bestCursorSize = Toolkit.getDefaultToolkit().getBestCursorSize(ORIGINAL_CURSOR_SIZE, ORIGINAL_CURSOR_SIZE);
+        Image bestCursorImage = HiDPISupport.getResolutionVariant(image, bestCursorSize.width, bestCursorSize.height);
+        int bestCursorImageWidth = bestCursorImage.getWidth(null);
+        assertEquals((int) Math.round(bestCursorSize.getWidth()), bestCursorImageWidth);
+        int bestCursorImageHeight = bestCursorImage.getHeight(null);
+        assertEquals((int) Math.round(bestCursorSize.getHeight()), bestCursorImageHeight);
+        assertEquals(originalHotspot.x / ORIGINAL_CURSOR_SIZE * bestCursorImageWidth, hotSpot.x, 1 /* at worst one pixel off */);
+        assertEquals(originalHotspot.y / ORIGINAL_CURSOR_SIZE * bestCursorImageHeight, hotSpot.y, 1 /* at worst one pixel off */);
     }
 
 

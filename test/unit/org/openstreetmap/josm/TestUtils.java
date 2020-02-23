@@ -50,6 +50,7 @@ import org.openstreetmap.josm.gui.progress.ProgressTaskId;
 import org.openstreetmap.josm.gui.util.GuiHelper;
 import org.openstreetmap.josm.io.Compression;
 import org.openstreetmap.josm.testutils.FakeGraphics;
+import org.openstreetmap.josm.testutils.mockers.HeadlessToolkitMocker;
 import org.openstreetmap.josm.testutils.mockers.JOptionPaneSimpleMocker;
 import org.openstreetmap.josm.testutils.mockers.WindowMocker;
 import org.openstreetmap.josm.tools.JosmRuntimeException;
@@ -464,6 +465,7 @@ public final class TestUtils {
             // Inspired by https://issues.apache.org/jira/browse/SOLR-11606
             new WindowMocker();
             new JOptionPaneSimpleMocker();
+            new HeadlessToolkitMocker();
         } catch (UnsupportedOperationException e) {
             Assume.assumeNoException(e);
         } finally {
