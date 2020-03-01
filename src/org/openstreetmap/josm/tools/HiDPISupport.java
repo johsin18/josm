@@ -169,7 +169,7 @@ public final class HiDPISupport {
      * only take the default screen device into account.
      * @return the GUI scale for HiDPI mode, a value of 1.0 means standard mode.
      */
-    private static double getHiDPIScale() {
+    static double getHiDPIScale() {
         if (GraphicsEnvironment.isHeadless())
             return 1.0;
         GraphicsConfiguration gc = GraphicsEnvironment

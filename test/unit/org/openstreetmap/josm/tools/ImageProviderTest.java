@@ -9,14 +9,16 @@ import static org.junit.Assert.assertNull;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
-import java.awt.Transparency;
 import java.awt.Graphics;
+import java.awt.Image;
+import java.awt.Transparency;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -25,6 +27,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -77,6 +80,11 @@ public class ImageProviderTest {
     @BeforeClass
     public static void setUp() {
         JOSMFixture.createUnitTestFixture().init();
+    }
+
+    @Before
+    public void resetPixelDensity() {
+        GuiSizesHelper.setPixelDensity(1.0f);
     }
 
     /**
@@ -156,6 +164,30 @@ public class ImageProviderTest {
         assertNotNull(ImageProvider.getPadded(OsmUtils.createPrimitive("way waterway=stream"), iconSize, noDefault));
         assertNotNull(ImageProvider.getPadded(OsmUtils.createPrimitive("relation type=route route=railway"), iconSize, noDefault));
     }
+
+    /**
+     * Test getting a bounded icon given some UI scaling configured.
+     */
+    @Test
+    public void testGetImageIconBounded() {
+        int scale = 2;
+        GuiSizesHelper.setPixelDensity(scale);
+
+        ImageProvider imageProvider = new ImageProvider("open").setOptional(true);
+        ImageResource resource = imageProvider.getResource();
+        Dimension iconDimension = ImageProvider.ImageSizes.SMALLICON.getImageDimension();
+        ImageIcon icon = resource.getImageIconBounded(iconDimension);
+        Image image = icon.getImage();
+        List<Image> resolutionVariants = HiDPISupport.getResolutionVariants(image);
+        if (resolutionVariants.size() > 1) {
+            assertEquals(2, resolutionVariants.size());
+            int expectedVirtualWidth = ImageProvider.ImageSizes.SMALLICON.getVirtualWidth();
+            assertEquals(expectedVirtualWidth * scale, resolutionVariants.get(0).getWidth(null));
+            assertEquals((int) Math.round(expectedVirtualWidth * scale * HiDPISupport.getHiDPIScale()),
+                         resolutionVariants.get(1).getWidth(null));
+        }
+    }
+
 
     /**
      * Test getting a cursor
