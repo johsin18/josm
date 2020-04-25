@@ -154,32 +154,34 @@ public class ImageResource {
      * @since 12722
      */
     public ImageIcon getImageIcon(Dimension dim, boolean multiResolution) {
+        return getImageIconAlreadyScaled(GuiSizesHelper.getDimensionDpiAdjusted(dim), multiResolution);
+    }
+
+    public ImageIcon getImageIconAlreadyScaled(Dimension dim, boolean multiResolution) {
         CheckParameterUtil.ensureThat((dim.width > 0 || dim.width == -1) && (dim.height > 0 || dim.height == -1),
                 () -> dim + " is invalid");
+
         BufferedImage img = imgCache.get(dim);
         if (img == null) {
             if (svg != null) {
-                Dimension realDim = GuiSizesHelper.getDimensionDpiAdjusted(dim);
-                img = ImageProvider.createImageFromSvg(svg, realDim);
+                img = ImageProvider.createImageFromSvg(svg, dim);
                 if (img == null) {
                     return null;
                 }
             } else {
                 if (baseImage == null) throw new AssertionError();
 
-                int realWidth = GuiSizesHelper.getSizeDpiAdjusted(dim.width);
-                int realHeight = GuiSizesHelper.getSizeDpiAdjusted(dim.height);
                 ImageIcon icon = new ImageIcon(baseImage);
-                if (realWidth == -1 && realHeight == -1) {
-                    realWidth = GuiSizesHelper.getSizeDpiAdjusted(icon.getIconWidth());
-                    realHeight = GuiSizesHelper.getSizeDpiAdjusted(icon.getIconHeight());
-                } else if (realWidth == -1) {
-                    realWidth = Math.max(1, icon.getIconWidth() * realHeight / icon.getIconHeight());
-                } else if (realHeight == -1) {
-                    realHeight = Math.max(1, icon.getIconHeight() * realWidth / icon.getIconWidth());
+                if (dim.width == -1 && dim.height == -1) {
+                    dim.width = GuiSizesHelper.getSizeDpiAdjusted(icon.getIconWidth());
+                    dim.height = GuiSizesHelper.getSizeDpiAdjusted(icon.getIconHeight());
+                } else if (dim.width == -1) {
+                    dim.width = Math.max(1, icon.getIconWidth() * dim.height / icon.getIconHeight());
+                } else if (dim.height == -1) {
+                    dim.height = Math.max(1, icon.getIconHeight() * dim.width / icon.getIconWidth());
                 }
-                Image i = icon.getImage().getScaledInstance(realWidth, realHeight, Image.SCALE_SMOOTH);
-                img = new BufferedImage(realWidth, realHeight, BufferedImage.TYPE_INT_ARGB);
+                Image i = icon.getImage().getScaledInstance(dim.width, dim.height, Image.SCALE_SMOOTH);
+                img = new BufferedImage(dim.width, dim.height, BufferedImage.TYPE_INT_ARGB);
                 img.getGraphics().drawImage(i, 0, 0, null);
             }
             if (overlayInfo != null) {
