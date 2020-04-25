@@ -58,7 +58,7 @@ public final class HiDPISupport {
     public static Image getMultiResolutionImage(Image base, ImageResource ir) {
         double uiScale = getHiDPIScale();
         if (uiScale != 1.0 && baseMultiResolutionImageConstructor != null) {
-            ImageIcon zoomed = ir.getImageIcon(new Dimension(
+            ImageIcon zoomed = ir.getImageIconAlreadyScaled(new Dimension(
                     (int) Math.round(base.getWidth(null) * uiScale),
                     (int) Math.round(base.getHeight(null) * uiScale)), false);
             Image mrImg = getMultiResolutionImage(Arrays.asList(base, zoomed.getImage()));
