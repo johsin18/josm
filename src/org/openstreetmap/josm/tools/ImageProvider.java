@@ -1316,9 +1316,9 @@ public class ImageProvider {
      * @return cursor with a given file name, optionally decorated with an overlay image
      */
     public static Cursor getCursor(String name, String overlay) {
-        ImageIcon img = get("cursor", name);
+        ImageIcon imageIcon = get("cursor", name);
         if (overlay != null) {
-            img = new ImageProvider("cursor", name).setMaxSize(ImageSizes.CURSOR)
+            imageIcon = new ImageProvider("cursor", name).setMaxSize(ImageSizes.CURSOR)
                 .addOverlay(new ImageOverlay(new ImageProvider("cursor/modifier/" + overlay)
                     .setMaxSize(ImageSizes.CURSOROVERLAY))).get();
         }
@@ -1327,7 +1327,26 @@ public class ImageProvider {
             return null;
         }
         Point hotSpot = "crosshair".equals(name) ? new Point(10, 10) : new Point(3, 2);
-        return Toolkit.getDefaultToolkit().createCustomCursor(img.getImage(), hotSpot, name);
+        Image image = imageIcon.getImage();
+        int width = image.getWidth(null);
+        int height = image.getHeight(null);
+
+        // AWT will resize the cursor to bestCursorSize internally anyway, but miss to scale the hotspot as well
+        // (bug JDK-8238734).  So let's do this ourselves, and also scale the hotspot accordingly.
+        Dimension bestCursorSize = Toolkit.getDefaultToolkit().getBestCursorSize(width, height);
+        if (bestCursorSize.width != 0 && bestCursorSize.height != 0) {
+            // In principle, we could pass the MultiResolutionImage itself to AWT, but due to bug JDK-8240568,
+            // this results in bad alpha blending and thus jaggy edges.  So let's select the best variant ourselves.
+            image = HiDPISupport.getResolutionVariant(image, bestCursorSize.width, bestCursorSize.height);
+            if (bestCursorSize.width != image.getWidth(null) || bestCursorSize.height != image.getHeight(null)) {
+                image = image.getScaledInstance(bestCursorSize.width, bestCursorSize.height, Image.SCALE_DEFAULT);
+            }
+
+            hotSpot.x = hotSpot.x * bestCursorSize.width / width;
+            hotSpot.y = hotSpot.y * bestCursorSize.height / height;
+        }
+
+        return Toolkit.getDefaultToolkit().createCustomCursor(image, hotSpot, name);
     }
 
     /** 90 degrees in radians units */
