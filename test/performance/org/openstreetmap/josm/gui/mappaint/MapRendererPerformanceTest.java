@@ -342,7 +342,7 @@ public class MapRendererPerformanceTest {
     }
 
     public static void dumpTimes(BenchmarkData bd) {
-        System.out.print(String.format("gen. %3d, sort %3d, draw %3d%n", bd.getGenerateTime(), bd.getSortTime(), bd.getDrawTime()));
+        System.out.print(String.format("gen. %4d, sort %4d, draw %4d%n", bd.getGenerateTime(), bd.getSortTime(), bd.getDrawTime()));
     }
 
     public static void dumpElementCount(BenchmarkData bd) {
