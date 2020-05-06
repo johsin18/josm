@@ -99,9 +99,9 @@ public class MapRendererPerformanceTest {
 
         img = new BufferedImage(IMG_WIDTH, IMG_HEIGHT, BufferedImage.TYPE_INT_ARGB);
         g = (Graphics2D) img.getGraphics();
-        g.setClip(0, 0, IMG_WIDTH, IMG_WIDTH);
+        g.setClip(0, 0, IMG_WIDTH, IMG_HEIGHT);
         g.setColor(Color.BLACK);
-        g.fillRect(0, 0, IMG_WIDTH, IMG_WIDTH);
+        g.fillRect(0, 0, IMG_WIDTH, IMG_HEIGHT);
         nc = MainApplication.getMap().mapView;
         nc.setBounds(0, 0, IMG_WIDTH, IMG_HEIGHT);
 
@@ -211,7 +211,7 @@ public class MapRendererPerformanceTest {
             int noTotal = noWarmup + noIterations;
             for (int i = 1; i <= noTotal; i++) {
                 g.setColor(Color.BLACK);
-                g.fillRect(0, 0, IMG_WIDTH, IMG_WIDTH);
+                g.fillRect(0, 0, IMG_WIDTH, IMG_HEIGHT);
                 if (clearStyleCache) {
                     MapPaintStyles.getStyles().clearCached();
                 }
