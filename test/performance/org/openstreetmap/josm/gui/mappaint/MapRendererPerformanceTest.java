@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -233,7 +234,7 @@ public class MapRendererPerformanceTest {
                     totalTimes.add(data.getGenerateTime() + data.getSortTime() + data.getDrawTime());
                 }
                 if (i == 1) {
-                    dumpElementCount(data);
+                    data.dumpElementCount();
                 }
                 dumpTimes(data);
                 if (dumpImage && i == noTotal) {
@@ -345,11 +346,6 @@ public class MapRendererPerformanceTest {
         System.out.print(String.format("gen. %4d, sort %4d, draw %4d%n", bd.getGenerateTime(), bd.getSortTime(), bd.getDrawTime()));
     }
 
-    public static void dumpElementCount(BenchmarkData bd) {
-        System.out.println(bd.recordElementStats().entrySet().stream()
-                .map(e -> e.getKey().getSimpleName().replace("Element", "") + ":" + e.getValue()).collect(Collectors.joining(" ")));
-    }
-
     public static class BenchmarkData extends CapturingBenchmark {
 
         private List<StyleRecord> allStyleElems;
@@ -371,6 +367,13 @@ public class MapRendererPerformanceTest {
                 styleElementCount.put(klass, count + 1);
             }
             return styleElementCount;
+        }
+
+        public void dumpElementCount() {
+            System.out.println(recordElementStats().entrySet().stream()
+                    .sorted(Comparator.comparing(e -> e.getKey().getSimpleName()))
+                    .map(e -> e.getKey().getSimpleName().replace("Element", "") + ":" + e.getValue())
+                    .collect(Collectors.joining(" ")));
         }
     }
 }
