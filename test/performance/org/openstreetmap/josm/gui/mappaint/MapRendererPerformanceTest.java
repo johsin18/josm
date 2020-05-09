@@ -302,6 +302,7 @@ public class MapRendererPerformanceTest {
             setFilterStyleActive(false);
         }
         MapPaintStyleLoader.reloadStyles(filterStyleIdx);
+        dsCity.clearMappaintCache();
         test.run();
     }
 
