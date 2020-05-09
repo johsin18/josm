@@ -3,6 +3,7 @@ package org.openstreetmap.josm.gui.mappaint;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -35,7 +36,6 @@ import org.openstreetmap.josm.data.osm.visitor.paint.StyledMapRenderer;
 import org.openstreetmap.josm.data.osm.visitor.paint.StyledMapRenderer.StyleRecord;
 import org.openstreetmap.josm.data.preferences.sources.SourceEntry;
 import org.openstreetmap.josm.data.projection.ProjectionRegistry;
-import org.openstreetmap.josm.gui.MainApplication;
 import org.openstreetmap.josm.gui.NavigatableComponent;
 import org.openstreetmap.josm.gui.mappaint.StyleSetting.BooleanStyleSetting;
 import org.openstreetmap.josm.gui.mappaint.loader.MapPaintStyleLoader;
@@ -49,6 +49,8 @@ import org.openstreetmap.josm.testutils.JOSMTestRules;
 import org.openstreetmap.josm.tools.Logging;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Performance test of map renderer.
@@ -103,8 +105,24 @@ public class MapRendererPerformanceTest {
         g.setClip(0, 0, IMG_WIDTH, IMG_HEIGHT);
         g.setColor(Color.BLACK);
         g.fillRect(0, 0, IMG_WIDTH, IMG_HEIGHT);
-        nc = MainApplication.getMap().mapView;
-        nc.setBounds(0, 0, IMG_WIDTH, IMG_HEIGHT);
+
+        nc = new NavigatableComponent() {
+            {
+                setBounds(0, 0, IMG_WIDTH, IMG_HEIGHT);
+                updateLocationState();
+            }
+
+            @Override
+            protected boolean isVisibleOnScreen() {
+                return true;
+            }
+
+            @Override
+            public Point getLocationOnScreen() {
+                return new Point(0, 0);
+            }
+        };
+        nc.zoomTo(BOUNDS_CITY_ALL);
 
         MapPaintStyles.readFromPreferences();
 
@@ -208,6 +226,8 @@ public class MapRendererPerformanceTest {
             }
 
             StyledMapRenderer renderer = new StyledMapRenderer(g, nc, false);
+            assertEquals(IMG_WIDTH, (int) nc.getState().getViewWidth());
+            assertEquals(IMG_HEIGHT, (int) nc.getState().getViewHeight());
 
             int noTotal = noWarmup + noIterations;
             for (int i = 1; i <= noTotal; i++) {
