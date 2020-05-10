@@ -46,7 +46,6 @@ import org.openstreetmap.josm.gui.progress.NullProgressMonitor;
 import org.openstreetmap.josm.io.Compression;
 import org.openstreetmap.josm.io.OsmReader;
 import org.openstreetmap.josm.testutils.JOSMTestRules;
-import org.openstreetmap.josm.tools.Logging;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -235,13 +234,6 @@ public class MapRendererPerformanceTest {
                 g.fillRect(0, 0, IMG_WIDTH, IMG_HEIGHT);
                 if (clearStyleCache) {
                     MapPaintStyles.getStyles().clearCached();
-                }
-                System.gc();
-                System.runFinalization();
-                try {
-                    Thread.sleep(300);
-                } catch (InterruptedException ex) {
-                    Logging.warn(ex);
                 }
                 BenchmarkData data = new BenchmarkData();
                 renderer.setBenchmarkFactory(() -> data);
