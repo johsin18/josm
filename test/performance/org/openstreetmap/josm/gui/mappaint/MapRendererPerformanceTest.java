@@ -192,8 +192,8 @@ public class MapRendererPerformanceTest {
         public double scale = 0;
         public LatLon center = LL_CITY;
         public Bounds bounds;
-        public int noWarmup = 3;
-        public int noIterations = 7;
+        public int noWarmup = 20;
+        public int noIterations = 30;
         public boolean dumpImage = DUMP_IMAGE;
         public boolean clearStyleCache = true;
         public String label = "";
@@ -288,8 +288,6 @@ public class MapRendererPerformanceTest {
         test.bounds = BOUNDS_CITY_ALL;
         test.label = "big";
         test.dumpImage = false;
-        test.noWarmup = 3;
-        test.noIterations = 10;
         test.mpGenerate = true;
         test.clearStyleCache = true;
         test.run();
@@ -297,8 +295,6 @@ public class MapRendererPerformanceTest {
 
     private static void testDrawFeature(Feature feature) throws IOException {
         PerformanceTester test = new PerformanceTester();
-        test.noWarmup = 3;
-        test.noIterations = 10;
         test.mpDraw = true;
         test.clearStyleCache = false;
         if (feature != null) {
