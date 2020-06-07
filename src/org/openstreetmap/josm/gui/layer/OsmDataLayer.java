@@ -495,7 +495,8 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
      * are drawn by the edit layer).
      * Draw nodes last to overlap the ways they belong to.
      */
-    @Override public void paint(final Graphics2D g, final MapView mv, Bounds box) {
+    @Override
+    public void paint(final Graphics2D g, final MapView mv, Bounds box) {
         boolean active = mv.getLayerManager().getActiveLayer() == this;
 
         // draw the hatched area for non-downloaded region. only draw if we're the active
@@ -510,6 +511,7 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
         painter.enableSlowOperations(mv.getMapMover() == null || !mv.getMapMover().movementInProgress()
                 || !PROPERTY_HIDE_LABELS_WHILE_DRAGGING.get());
         painter.render(data, virtual, box);
+
         MainApplication.getMap().conflictDialog.paintConflicts(g, mv);
     }
 
