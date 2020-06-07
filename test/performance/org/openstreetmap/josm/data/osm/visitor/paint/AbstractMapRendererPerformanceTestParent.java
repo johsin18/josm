@@ -19,6 +19,7 @@ import org.openstreetmap.josm.io.Compression;
 import org.openstreetmap.josm.io.OsmReader;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.openstreetmap.josm.tools.Stopwatch;
 
 /**
  * Abstract superclass of {@code StyledMapRendererPerformanceTest} and {@code WireframeMapRendererPerformanceTest}.
@@ -67,9 +68,14 @@ public abstract class AbstractMapRendererPerformanceTestParent extends PaintingT
     protected final void test(int iterations, DataSet ds, Bounds bounds) {
         nc.zoomTo(bounds);
         Rendering visitor = buildRenderer();
+
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         for (int i = 0; i < iterations; i++) {
             visitor.render(ds, true, bounds);
         }
+
+        System.out.format("Rendering took % 4.2f ms in average.\n", (float) stopwatch.elapsed() / iterations);
     }
 
     @Test
