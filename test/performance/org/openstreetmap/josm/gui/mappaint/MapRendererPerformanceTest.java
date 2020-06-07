@@ -2,9 +2,6 @@
 package org.openstreetmap.josm.gui.mappaint;
 
 import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,10 +18,11 @@ import javax.imageio.ImageIO;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
-import org.openstreetmap.josm.JOSMFixture;
+import org.openstreetmap.josm.PaintingTest;
 import org.openstreetmap.josm.PerformanceTestUtils;
 import org.openstreetmap.josm.TestUtils;
 import org.openstreetmap.josm.data.Bounds;
@@ -35,7 +33,6 @@ import org.openstreetmap.josm.data.osm.visitor.paint.StyledMapRenderer;
 import org.openstreetmap.josm.data.osm.visitor.paint.StyledMapRenderer.StyleRecord;
 import org.openstreetmap.josm.data.preferences.sources.SourceEntry;
 import org.openstreetmap.josm.data.projection.ProjectionRegistry;
-import org.openstreetmap.josm.gui.NavigatableComponent;
 import org.openstreetmap.josm.gui.mappaint.StyleSetting.BooleanStyleSetting;
 import org.openstreetmap.josm.gui.mappaint.loader.MapPaintStyleLoader;
 import org.openstreetmap.josm.gui.mappaint.mapcss.MapCSSStyleSource;
@@ -53,16 +50,10 @@ import static org.junit.Assert.assertEquals;
 /**
  * Performance test of map renderer.
  */
-public class MapRendererPerformanceTest {
+public class MapRendererPerformanceTest extends PaintingTest {
 
     private static final boolean DUMP_IMAGE = false; // dump images to file for debugging purpose
 
-    private static final int IMG_WIDTH = 2048;
-    private static final int IMG_HEIGHT = 1536;
-
-    private static Graphics2D g;
-    private static BufferedImage img;
-    private static NavigatableComponent nc;
     private static DataSet dsCity;
     private static final Bounds BOUNDS_CITY_ALL = new Bounds(53.4382, 13.1094, 53.6153, 13.4074, false);
     private static final LatLon LL_CITY = new LatLon(53.5574458, 13.2602781);
@@ -95,33 +86,7 @@ public class MapRendererPerformanceTest {
      * @throws Exception if any error occurs
      */
     @BeforeClass
-    public static void load() throws Exception {
-        JOSMFixture.createPerformanceTestFixture().init(true);
-
-        img = new BufferedImage(IMG_WIDTH, IMG_HEIGHT, BufferedImage.TYPE_INT_ARGB);
-        g = (Graphics2D) img.getGraphics();
-        g.setClip(0, 0, IMG_WIDTH, IMG_HEIGHT);
-        g.setColor(Color.BLACK);
-        g.fillRect(0, 0, IMG_WIDTH, IMG_HEIGHT);
-
-        nc = new NavigatableComponent() {
-            {
-                setBounds(0, 0, IMG_WIDTH, IMG_HEIGHT);
-                updateLocationState();
-            }
-
-            @Override
-            protected boolean isVisibleOnScreen() {
-                return true;
-            }
-
-            @Override
-            public Point getLocationOnScreen() {
-                return new Point(0, 0);
-            }
-        };
-        nc.zoomTo(BOUNDS_CITY_ALL);
-
+    public static void loadData() throws Exception {
         MapPaintStyles.readFromPreferences();
 
         SourceEntry se = new MapCSSStyleSource(TestUtils.getTestDataRoot() + "styles/filter.mapcss", "filter", "");
@@ -175,6 +140,11 @@ public class MapRendererPerformanceTest {
         }
     }
 
+    @Before
+    public void zoomToCity() {
+        nc.zoomTo(BOUNDS_CITY_ALL);
+    }
+
     /**
      * Cleanup test environment.
      */
@@ -187,7 +157,7 @@ public class MapRendererPerformanceTest {
         MapPaintStyleLoader.reloadStyles(defaultStyleIdx);
     }
 
-    private static class PerformanceTester {
+    private class PerformanceTester {
         public double scale = 0;
         public LatLon center = LL_CITY;
         public Bounds bounds;
@@ -292,7 +262,7 @@ public class MapRendererPerformanceTest {
         test.run();
     }
 
-    private static void testDrawFeature(Feature feature) throws IOException {
+    private void testDrawFeature(Feature feature) throws IOException {
         PerformanceTester test = new PerformanceTester();
         test.mpDraw = true;
         test.clearStyleCache = false;
@@ -345,7 +315,7 @@ public class MapRendererPerformanceTest {
         }
     }
 
-    private static void dumpRenderedImage(String id) throws IOException {
+    private void dumpRenderedImage(String id) throws IOException {
         File outputfile = new File("test-neubrandenburg-"+id+".png");
         ImageIO.write(img, "png", outputfile);
     }
