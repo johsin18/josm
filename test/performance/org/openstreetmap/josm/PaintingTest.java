@@ -8,6 +8,7 @@ import javax.imageio.ImageIO;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Point;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -17,6 +18,8 @@ import java.io.IOException;
  */
 public abstract class PaintingTest {
     protected static final int IMG_WIDTH = 2048, IMG_HEIGHT = 1536;
+    protected static final float SCREEN_SCALING = 1f;  // simulate screen scaling: 1.0 for regular screen, e.g. 2.0 for Retina displays
+    protected static final int SCALED_IMG_WIDTH = (int) (SCREEN_SCALING * IMG_WIDTH), SCALED_IMG_HEIGHT = (int) (SCREEN_SCALING * IMG_HEIGHT);
 
     protected Graphics2D g;
     protected BufferedImage img;
@@ -29,8 +32,9 @@ public abstract class PaintingTest {
 
     @Before
     public void init() {
-        img = new BufferedImage(IMG_WIDTH, IMG_HEIGHT, BufferedImage.TYPE_INT_ARGB);
+        img = new BufferedImage(SCALED_IMG_WIDTH, SCALED_IMG_HEIGHT, BufferedImage.TYPE_INT_ARGB);
         g = (Graphics2D) img.getGraphics();
+        g.setTransform(AffineTransform.getScaleInstance(SCREEN_SCALING, SCREEN_SCALING));
         g.setClip(0, 0, IMG_WIDTH, IMG_HEIGHT);
         g.setColor(Color.BLACK);
         g.fillRect(0, 0, IMG_WIDTH, IMG_HEIGHT);
