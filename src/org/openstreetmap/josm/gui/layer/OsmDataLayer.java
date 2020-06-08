@@ -144,7 +144,7 @@ import org.openstreetmap.josm.tools.date.DateUtils;
  * @since 17
  */
 public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, DataSelectionListener, HighlightUpdateListener {
-    private static final int HATCHED_SIZE = 15;
+    static final int HATCHED_SIZE = 15;
     /** Property used to know if this layer has to be saved on disk */
     public static final String REQUIRES_SAVE_TO_DISK_PROP = OsmDataLayer.class.getName() + ".requiresSaveToDisk";
     /** Property used to know if this layer has to be uploaded */
@@ -515,7 +515,7 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
         MainApplication.getMap().conflictDialog.paintConflicts(g, mv);
     }
 
-    private void hatchNonDownloadedArea(Graphics2D g, NavigatableComponent nc) {
+    void hatchNonDownloadedArea(Graphics2D g, NavigatableComponent nc) {
         Path2D downloadedArea = new Path2D.Double();
 
         // combine successively downloaded areas

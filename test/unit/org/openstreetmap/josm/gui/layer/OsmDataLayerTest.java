@@ -1,9 +1,11 @@
 // License: GPL. For details, see LICENSE file.
 package org.openstreetmap.josm.gui.layer;
 
+import static org.hamcrest.number.IsCloseTo.closeTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -17,9 +19,11 @@ import java.util.Iterator;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.openstreetmap.josm.PaintingTest;
 import org.openstreetmap.josm.TestUtils;
 import org.openstreetmap.josm.actions.ExpertToggleAction;
 import org.openstreetmap.josm.data.Bounds;
+import org.openstreetmap.josm.data.DataSource;
 import org.openstreetmap.josm.data.coor.LatLon;
 import org.openstreetmap.josm.data.gpx.GpxConstants;
 import org.openstreetmap.josm.data.gpx.GpxData;
@@ -45,7 +49,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * Unit tests of {@link OsmDataLayer} class.
  */
-public class OsmDataLayerTest {
+public class OsmDataLayerTest extends PaintingTest {
 
     /**
      * Setup tests
@@ -344,5 +348,41 @@ public class OsmDataLayerTest {
         Logging.clearLastErrorAndWarnings();
         new OsmDataLayer(new DataSet(), null, null).destroy();
         assertTrue(Logging.getLastErrorAndWarnings().stream().noneMatch(s -> s.contains("UnsupportedFlavorException")));
+    }
+
+    /**
+     * Checks that hatching works correctly
+     */
+    @Test
+    public void testHatchNonDownloadedArea() {
+        Bounds bounds = new Bounds(-0.000_01, -0.000_01, 0.000_01, 0.000_01);
+        ds.addDataSource(new DataSource(bounds, "test"));
+        nc.zoomTo(new Bounds(-1, -1, 1, 1));
+
+        // downloaded area covers negligible part only of visible area, so basically everything should be hatched
+        layer.hatchNonDownloadedArea(g, nc);
+
+        int[] pixels = img.getRGB(0, 0, SCALED_IMG_WIDTH, SCALED_IMG_HEIGHT, null, 0, SCALED_IMG_WIDTH);
+        for (int row = 0; row < SCALED_IMG_HEIGHT; row++) {
+            int numColorChanges = countColorChangesInRow(pixels, row, SCALED_IMG_WIDTH);
+            int expectedNumColorChanges = IMG_WIDTH / OsmDataLayer.HATCHED_SIZE * 2 /* 2 changes for every line drawn */;
+            assertThat("number of color changes in row " + row, (double) numColorChanges, closeTo(expectedNumColorChanges, 2));
+        }
+    }
+
+    private int countColorChangesInRow(int[] pixels, int row, int width) {
+        int numColorChanges = 0;
+        int start = row * width, end = (row + 1) * width;
+
+        int formerColor = -1;  // will never be in actual picture, as alpha channel is masked out
+        for (int p = start + 1; p < end; ++p) {
+            int currentColor = pixels[p] & 0xFFFFFF; // mask out alpha channel
+            if (Math.min(formerColor, currentColor) == 0 && Math.max(formerColor, currentColor) > 0) {
+                // change from black to color or vice versa
+                numColorChanges++;
+            }
+            formerColor = currentColor;
+        }
+        return numColorChanges;
     }
 }
