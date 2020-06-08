@@ -9,16 +9,18 @@ import static org.openstreetmap.josm.tools.I18n.trn;
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Composite;
+import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.GridBagLayout;
 import java.awt.Rectangle;
-import java.awt.TexturePaint;
+import java.awt.Shape;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Area;
 import java.awt.geom.Path2D;
-import java.awt.geom.Rectangle2D;
+import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -388,9 +390,10 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
      */
     private static volatile BufferedImage hatched;
 
-    static {
-        createHatchTexture();
-    }
+    /**
+     * scaling of the above texture
+     */
+    private double hatchTextureScaling = 0.0;
 
     /**
      * Replies background color for downloaded areas.
@@ -411,17 +414,25 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
     /**
      * Initialize the hatch pattern used to paint the non-downloaded area
      */
-    public static void createHatchTexture() {
-        BufferedImage bi = new BufferedImage(HATCHED_SIZE, HATCHED_SIZE, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D big = bi.createGraphics();
-        big.setColor(getBackgroundColor());
+    private void createHatchTexture(Dimension requiredHatchTextureSize, AffineTransform scaleOnlyTransform) {
+        hatched = GuiHelper.createOpaqueOffscreenBuffer(requiredHatchTextureSize.width, requiredHatchTextureSize.height);
+        Graphics2D hatchGraphics = hatched.createGraphics();
+        hatchGraphics.setTransform(scaleOnlyTransform);
         Composite comp = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f);
-        big.setComposite(comp);
-        big.fillRect(0, 0, HATCHED_SIZE, HATCHED_SIZE);
-        big.setColor(getOutsideColor());
-        big.drawLine(-1, 6, 6, -1);
-        big.drawLine(4, 16, 16, 4);
-        hatched = bi;
+        hatchGraphics.setComposite(comp);
+        hatchGraphics.setColor(getBackgroundColor());
+        hatchGraphics.fillRect(0, 0, hatched.getWidth(), hatched.getHeight());
+        hatchGraphics.setColor(getOutsideColor());
+        for (int y = 0; y < requiredHatchTextureSize.height + requiredHatchTextureSize.width; y += HATCHED_SIZE) {
+            hatchGraphics.drawLine(
+                    0, y,
+                    requiredHatchTextureSize.width, y - requiredHatchTextureSize.width /* 45° upwards */);
+        }
+        hatchTextureScaling = scaleOnlyTransform.getScaleX();
+    }
+
+    public static void invalidateHatchTexture() {
+        hatched = null;
     }
 
     /**
@@ -518,8 +529,21 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
 
     void hatchNonDownloadedArea(Graphics2D g, NavigatableComponent nc) {
         Stopwatch stopwatch = Stopwatch.createStarted();
-        Path2D downloadedArea = new Path2D.Double();
 
+        AffineTransform originalTransform = g.getTransform();
+        AffineTransform scalingOnlyTransform = AffineTransform.getScaleInstance(originalTransform.getScaleX(), originalTransform.getScaleY());
+        Rectangle transformedViewPort =
+            scalingOnlyTransform.createTransformedShape(
+                new Rectangle(nc.getWidth() + HATCHED_SIZE, nc.getHeight() + HATCHED_SIZE)
+            )
+            .getBounds();
+        // width/height in full-resolution screen pixels
+        Dimension requiredHatchTextureSize = new Dimension(transformedViewPort.width, transformedViewPort.height);
+        if (hatched == null || !requiredHatchTextureSize.equals(getImageSize(hatched)) || originalTransform.getScaleX() != hatchTextureScaling) {
+            createHatchTexture(requiredHatchTextureSize, scalingOnlyTransform);
+        }
+
+        Path2D downloadedArea = new Path2D.Double();
         // combine successively downloaded areas
         for (Bounds bounds : data.getDataSourceBounds()) {
             if (bounds.isCollapsed()) {
@@ -535,20 +559,29 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
 
         // anchor pattern to a fixed point of the map, so that it scrolls with the rest of the map
         MapViewPoint anchor = nc.getState().getPointFor(new EastNorth(0, 0));
-        Rectangle2D anchorRect = new Rectangle2D.Double(anchor.getInView().getX() % HATCHED_SIZE,
-                anchor.getInView().getY() % HATCHED_SIZE, HATCHED_SIZE, HATCHED_SIZE);
+        Point2D anchorTransformed = originalTransform.transform(anchor.getInView(), new Point2D.Float());
+        Shape formerClip = g.getClip();
+        g.setClip(nonDownloadedArea);
+        g.setTransform(new AffineTransform() /* identity */);
+        int scaledHatchSize = (int) Math.round(HATCHED_SIZE * originalTransform.getScaleX());
 
         // hatch remaining (e.g. non-downloaded) area
-        if (hatched != null) {
-            g.setPaint(new TexturePaint(hatched, anchorRect));
-        }
-        try {
-            g.fill(nonDownloadedArea);
-        } catch (ArrayIndexOutOfBoundsException e) {
-            // #16686 - AIOOBE in java.awt.TexturePaintContext$Int.setRaster
-            Logging.error(e);
-        }
+        g.drawImage(hatched,
+                    moduloExtendingToNegative((int) anchorTransformed.getX(), scaledHatchSize) - scaledHatchSize,
+                    moduloExtendingToNegative((int) anchorTransformed.getY(), scaledHatchSize) - scaledHatchSize,
+                    null);
+        g.setTransform(originalTransform);
+        g.setClip(formerClip);
+
         System.out.format("hatchfill % 3d\n", stopwatch.elapsed());
+    }
+
+    private static int moduloExtendingToNegative(int i, int modulus) {
+        return (i % modulus + modulus) % modulus;
+    }
+
+    private static Dimension getImageSize(BufferedImage image) {
+        return new Dimension(image.getWidth(), image.getHeight());
     }
 
     @Override public String getToolTipText() {

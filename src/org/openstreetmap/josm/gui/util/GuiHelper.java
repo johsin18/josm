@@ -11,6 +11,7 @@ import java.awt.Dimension;
 import java.awt.DisplayMode;
 import java.awt.Font;
 import java.awt.Frame;
+import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.GridBagLayout;
@@ -18,10 +19,12 @@ import java.awt.HeadlessException;
 import java.awt.Image;
 import java.awt.Stroke;
 import java.awt.Toolkit;
+import java.awt.Transparency;
 import java.awt.Window;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 import java.awt.image.FilteredImageSource;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
@@ -662,5 +665,19 @@ public final class GuiHelper {
         if (destroyItself && component instanceof Destroyable) {
             ((Destroyable) component).destroy();
         }
+    }
+
+    /**
+     * Creates a BufferedImage without alpha channel that is compatible to the default screen device,
+     * which means that it can be "optimally blitted to a device with this <code>GraphicsConfiguration</code>".
+     * @param width width of the buffered image
+     * @param height height of the buffered image
+     * @return the created buffered image
+     */
+    public static BufferedImage createOpaqueOffscreenBuffer(int width, int height) {
+        GraphicsEnvironment env = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        GraphicsDevice device = env.getDefaultScreenDevice();
+        GraphicsConfiguration config = device.getDefaultConfiguration();
+        return config.createCompatibleImage(width, height, Transparency.OPAQUE);
     }
 }
