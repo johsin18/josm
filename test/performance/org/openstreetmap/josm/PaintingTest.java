@@ -18,7 +18,7 @@ import java.io.IOException;
  */
 public abstract class PaintingTest {
     protected static final int IMG_WIDTH = 2048, IMG_HEIGHT = 1536;
-    protected static final float SCREEN_SCALING = 1f;  // simulate screen scaling: 1.0 for regular screen, e.g. 2.0 for Retina displays
+    protected static final float SCREEN_SCALING = 2f;  // simulate screen scaling: 1.0 for regular screen, e.g. 2.0 for Retina displays
     protected static final int SCALED_IMG_WIDTH = (int) (SCREEN_SCALING * IMG_WIDTH), SCALED_IMG_HEIGHT = (int) (SCREEN_SCALING * IMG_HEIGHT);
 
     protected Graphics2D g;
