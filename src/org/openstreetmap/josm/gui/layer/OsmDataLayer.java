@@ -103,6 +103,7 @@ import org.openstreetmap.josm.gui.MainApplication;
 import org.openstreetmap.josm.gui.MapFrame;
 import org.openstreetmap.josm.gui.MapView;
 import org.openstreetmap.josm.gui.MapViewState.MapViewPoint;
+import org.openstreetmap.josm.gui.NavigatableComponent;
 import org.openstreetmap.josm.gui.datatransfer.ClipboardUtils;
 import org.openstreetmap.josm.gui.datatransfer.data.OsmLayerTransferData;
 import org.openstreetmap.josm.gui.dialogs.LayerListDialog;
@@ -512,7 +513,7 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
         MainApplication.getMap().conflictDialog.paintConflicts(g, mv);
     }
 
-    private void hatchNonDownloadedArea(Graphics2D g, MapView mv) {
+    private void hatchNonDownloadedArea(Graphics2D g, NavigatableComponent nc) {
         Path2D downloadedArea = new Path2D.Double();
 
         // combine successively downloaded areas
@@ -520,16 +521,16 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
             if (bounds.isCollapsed()) {
                 continue;
             }
-            downloadedArea.append(mv.getState().getArea(bounds), false);
+            downloadedArea.append(nc.getState().getArea(bounds), false);
         }
         // current viewport is base
         Area nonDownloadedArea = new Area(
-                new Rectangle(mv.getWidth(), mv.getHeight()) /* ignore position, as may be shifted by AlignImageryPanel */);
+                new Rectangle(nc.getWidth(), nc.getHeight()) /* ignore position, as may be shifted by AlignImageryPanel */);
         // subtract combined areas
         nonDownloadedArea.subtract(new Area(downloadedArea));
 
         // anchor pattern to a fixed point of the map, so that it scrolls with the rest of the map
-        MapViewPoint anchor = mv.getState().getPointFor(new EastNorth(0, 0));
+        MapViewPoint anchor = nc.getState().getPointFor(new EastNorth(0, 0));
         Rectangle2D anchorRect = new Rectangle2D.Double(anchor.getInView().getX() % HATCHED_SIZE,
                 anchor.getInView().getY() % HATCHED_SIZE, HATCHED_SIZE, HATCHED_SIZE);
 
