@@ -33,7 +33,7 @@ public class OsmDataLayerPerformanceTest extends PaintingTest {
         OsmDataLayer osmDataLayer = new OsmDataLayer(dataSet, "test data layer", null);
         nc.zoomTo(new Bounds(-0.000_02, -0.000_02, 0.000_02, 0.000_02));
 
-        final int NUM_ITERATIONS = 1000;
+        final int NUM_ITERATIONS = 100;
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 

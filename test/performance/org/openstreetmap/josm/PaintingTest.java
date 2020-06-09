@@ -3,6 +3,8 @@ package org.openstreetmap.josm;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.openstreetmap.josm.gui.NavigatableComponent;
+import org.openstreetmap.josm.gui.layer.OsmDataLayer;
+import org.openstreetmap.josm.gui.util.GuiHelper;
 
 import javax.imageio.ImageIO;
 import java.awt.Color;
@@ -32,7 +34,9 @@ public abstract class PaintingTest {
 
     @Before
     public void init() {
-        img = new BufferedImage(SCALED_IMG_WIDTH, SCALED_IMG_HEIGHT, BufferedImage.TYPE_INT_ARGB);
+        //img = new BufferedImage(SCALED_IMG_WIDTH, SCALED_IMG_HEIGHT, BufferedImage.TYPE_INT_ARGB);
+        img = GuiHelper.createOpaqueOffscreenBuffer((int) (SCREEN_SCALING * IMG_WIDTH), (int) (SCREEN_SCALING * IMG_HEIGHT));
+
         g = (Graphics2D) img.getGraphics();
         g.setTransform(AffineTransform.getScaleInstance(SCREEN_SCALING, SCREEN_SCALING));
         g.setClip(0, 0, IMG_WIDTH, IMG_HEIGHT);

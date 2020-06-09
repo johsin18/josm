@@ -16,6 +16,7 @@ import java.awt.TexturePaint;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Area;
 import java.awt.geom.Path2D;
 import java.awt.geom.Rectangle2D;
@@ -129,6 +130,7 @@ import org.openstreetmap.josm.spi.preferences.Config;
 import org.openstreetmap.josm.tools.AlphanumComparator;
 import org.openstreetmap.josm.tools.CheckParameterUtil;
 import org.openstreetmap.josm.tools.GBC;
+import org.openstreetmap.josm.tools.HiDPISupport;
 import org.openstreetmap.josm.tools.ImageOverlay;
 import org.openstreetmap.josm.tools.ImageProvider;
 import org.openstreetmap.josm.tools.ImageProvider.ImageSizes;
@@ -188,6 +190,10 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
 
     /** List of recent relations */
     private final Map<Relation, Void> recentRelations = new LruCache<>(PROPERTY_RECENT_RELATIONS_NUMBER.get());
+
+    public static void invalidateHatchTexture() {
+        hatched = null;
+    }
 
     /**
      * Returns list of recently closed relations or null if none.
@@ -388,10 +394,6 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
      */
     private static volatile BufferedImage hatched;
 
-    static {
-        createHatchTexture();
-    }
-
     /**
      * scaling of the above texture
      */
@@ -416,18 +418,21 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
     /**
      * Initialize the hatch pattern used to paint the non-downloaded area
      */
-    public static void createHatchTexture() {
-        BufferedImage bi = new BufferedImage(HATCHED_SIZE, HATCHED_SIZE, BufferedImage.TYPE_INT_ARGB);
+    public void createHatchTexture(double scaling) {
+        int hatchedSize = (int) (HATCHED_SIZE * scaling);
+        //BufferedImage bi = new BufferedImage(hatchedSize, hatchedSize, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage bi = GuiHelper.createOpaqueOffscreenBuffer(hatchedSize, hatchedSize);
         Graphics2D big = bi.createGraphics();
         big.setColor(getBackgroundColor());
         Composite comp = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f);
         big.setComposite(comp);
-        big.fillRect(0, 0, HATCHED_SIZE, HATCHED_SIZE);
+        big.fillRect(0, 0, hatchedSize, hatchedSize);
         big.setColor(getOutsideColor());
+        big.setTransform(AffineTransform.getScaleInstance(scaling, scaling));
         big.drawLine(-1, 6, 6, -1);
         big.drawLine(4, 16, 16, 4);
         hatched = bi;
-        hatchTextureScaling = scaleOnlyTransform.getScaleX();
+        hatchTextureScaling = scaling;
     }
 
     /**
@@ -539,21 +544,34 @@ public class OsmDataLayer extends AbstractOsmDataLayer implements Listener, Data
         // subtract combined areas
         nonDownloadedArea.subtract(new Area(downloadedArea));
 
+        AffineTransform originalTransform = g.getTransform();
+
+        if (hatched == null || hatchTextureScaling != originalTransform.getScaleX()) {
+            createHatchTexture(originalTransform.getScaleX());
+        }
         // anchor pattern to a fixed point of the map, so that it scrolls with the rest of the map
         MapViewPoint anchor = nc.getState().getPointFor(new EastNorth(0, 0));
-        Rectangle2D anchorRect = new Rectangle2D.Double(anchor.getInView().getX() % HATCHED_SIZE,
-                anchor.getInView().getY() % HATCHED_SIZE, HATCHED_SIZE, HATCHED_SIZE);
+        int hatchedSize = (int) (HATCHED_SIZE * originalTransform.getScaleX());
+        Rectangle2D anchorRect = new Rectangle2D.Double(anchor.getInView().getX() % hatchedSize,
+                anchor.getInView().getY() % hatchedSize, hatchedSize, hatchedSize);
+
+        nonDownloadedArea.transform(originalTransform);
+        g.setTransform(new AffineTransform() /* identity */);
 
         // hatch remaining (e.g. non-downloaded) area
         if (hatched != null) {
             g.setPaint(new TexturePaint(hatched, anchorRect));
         }
         try {
-            g.fill(nonDownloadedArea);
+            g.setClip(nonDownloadedArea);
+            g.fill(originalTransform.createTransformedShape(new Rectangle(nc.getWidth(), nc.getHeight())));
         } catch (ArrayIndexOutOfBoundsException e) {
             // #16686 - AIOOBE in java.awt.TexturePaintContext$Int.setRaster
             Logging.error(e);
         }
+
+        g.setTransform(originalTransform);
+
         System.out.format("hatchfill % 3d\n", stopwatch.elapsed());
     }
 

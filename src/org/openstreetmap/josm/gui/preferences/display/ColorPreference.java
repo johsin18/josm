@@ -398,7 +398,7 @@ public class ColorPreference implements SubPreferenceSetting, ListSelectionListe
                 e.toProperty().put(e.info.getValue());
             }
         }
-        OsmDataLayer.createHatchTexture();
+        OsmDataLayer.invalidateHatchTexture();
         return false;
     }
 
