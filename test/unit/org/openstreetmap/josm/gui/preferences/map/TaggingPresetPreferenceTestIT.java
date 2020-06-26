@@ -12,11 +12,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -115,14 +111,7 @@ public class TaggingPresetPreferenceTestIT extends AbstractExtendedSourceEntryTe
     private void testPresets(Set<String> messages, ExtendedSourceEntry source) throws SAXException, IOException {
         Collection<TaggingPreset> presets = TaggingPresetReader.readAll(source.url, true);
         assertFalse(presets.isEmpty());
-        // wait for asynchronous icon loading
-        presets.parallelStream().map(TaggingPreset::getIconLoadingTask).filter(Objects::nonNull).forEach(t -> {
-            try {
-                t.get(30, TimeUnit.SECONDS);
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                Logging.error(e);
-            }
-        });
+        TestUtils.waitForIconLoading(presets);
         // check that links are correct and not redirections
         presets.parallelStream().flatMap(x -> x.data.stream().filter(i -> i instanceof Link).map(i -> ((Link) i).getUrl())).forEach(u -> {
             try {

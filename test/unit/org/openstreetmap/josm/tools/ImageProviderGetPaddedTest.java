@@ -6,8 +6,10 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.openstreetmap.josm.JOSMFixture;
+import org.openstreetmap.josm.TestUtils;
 import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmUtils;
+import org.openstreetmap.josm.gui.tagging.presets.TaggingPresets;
 import org.openstreetmap.josm.testutils.JOSMTestRules;
 import org.openstreetmap.josm.tools.ImageProvider.GetPaddedOptions;
 
@@ -43,6 +45,8 @@ public class ImageProviderGetPaddedTest {
      */
     @Test
     public void testGetPadded() {
+        TestUtils.waitForIconLoading(TaggingPresets.getTaggingPresets());
+
         final EnumSet<GetPaddedOptions> noDefault = EnumSet.of(GetPaddedOptions.NO_DEFAULT);
         final Dimension iconSize = new Dimension(16, 16);
 

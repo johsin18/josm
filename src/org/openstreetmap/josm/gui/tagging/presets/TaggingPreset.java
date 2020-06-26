@@ -228,7 +228,8 @@ public class TaggingPreset extends AbstractAction implements ActiveLayerChangeLi
         }
         File arch = TaggingPresetReader.getZipIcons();
         final Collection<String> s = Config.getPref().getList("taggingpreset.icon.sources", null);
-        this.iconFuture = new ImageProvider(iconName)
+        this.iconFuture = new CompletableFuture<>();
+        new ImageProvider(iconName)
             .setDirs(s)
             .setId("presets")
             .setArchive(arch)
@@ -241,6 +242,8 @@ public class TaggingPreset extends AbstractAction implements ActiveLayerChangeLi
                         } catch (IllegalArgumentException e) {
                             Logging.warn(toString() + ": " + PRESET_ICON_ERROR_MSG_PREFIX + iconName);
                             Logging.warn(e);
+                        } finally {
+                            iconFuture.complete(null);
                         }
                     });
                 } else {

@@ -29,6 +29,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -47,12 +49,14 @@ import org.openstreetmap.josm.gui.progress.AbstractProgressMonitor;
 import org.openstreetmap.josm.gui.progress.CancelHandler;
 import org.openstreetmap.josm.gui.progress.ProgressMonitor;
 import org.openstreetmap.josm.gui.progress.ProgressTaskId;
+import org.openstreetmap.josm.gui.tagging.presets.TaggingPreset;
 import org.openstreetmap.josm.gui.util.GuiHelper;
 import org.openstreetmap.josm.io.Compression;
 import org.openstreetmap.josm.testutils.FakeGraphics;
 import org.openstreetmap.josm.testutils.mockers.JOptionPaneSimpleMocker;
 import org.openstreetmap.josm.testutils.mockers.WindowMocker;
 import org.openstreetmap.josm.tools.JosmRuntimeException;
+import org.openstreetmap.josm.tools.Logging;
 import org.openstreetmap.josm.tools.ReflectionUtils;
 import org.openstreetmap.josm.tools.Utils;
 import org.openstreetmap.josm.tools.WikiReader;
@@ -601,5 +605,16 @@ public final class TestUtils {
                 .filter(s -> s.startsWith("|| " + integrationTest.getSimpleName() + " ||"))
                 .map(s -> s.substring(s.indexOf("{{{") + 3, s.indexOf("}}}")))
                 .collect(Collectors.toList());
+    }
+
+    public static void waitForIconLoading(Collection<TaggingPreset> presets) {
+        // wait for asynchronous icon loading
+        presets.parallelStream().map(TaggingPreset::getIconLoadingTask).filter(Objects::nonNull).forEach(t -> {
+            try {
+                t.get(30, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                Logging.error(e);
+            }
+        });
     }
 }
